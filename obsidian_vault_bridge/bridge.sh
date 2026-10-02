@@ -131,11 +131,26 @@ merge_remote() {
 push_remote() {
   local marker="$STATE_DIR/first_push_done"
   if [ ! -f "$marker" ]; then
-    node "${SCAN:-/app/secret_scan.js}" "$VAULT" | tee "$STATE_DIR/secret_scan.txt"
+    # Scan only what git will upload (excluded files such as plugin code never leave the vault).
+    git ls-files | node "${SCAN:-/app/secret_scan.js}" "$VAULT" --stdin | tee "$STATE_DIR/secret_scan.txt"
     if [ "$FIRST_PUSH_APPROVED" != "true" ]; then
       notify "First upload is waiting for you: review the secret scan in the add-on log, then turn on first_push_approved."
       log "FIRST PUSH ON HOLD: review the scan above, remove anything sensitive (or add the folder to"
       log "excluded_folders), then set first_push_approved to true and restart the add-on."
+      return 1
+    fi
+  fi
+  if [ ! -f "$marker" ] && ! git rev-parse -q --verify "refs/remotes/origin/$BRANCH" >/dev/null; then
+    # Brand-new remote: earlier local snapshots may still contain secrets you have since removed
+    # from your notes. Upload one fresh snapshot of the current notes instead of that history.
+    if git checkout -q --orphan vault-bridge-first-upload \
+      && git commit -q --allow-empty -m "Initial vault import" \
+      && git branch -M "$BRANCH"; then
+      git reflog expire --expire=now --all
+      git gc -q --prune=now
+      log "Older local snapshots were collapsed into one so secrets you removed are not uploaded."
+    else
+      notify "Could not prepare the first upload; nothing was sent to GitHub."
       return 1
     fi
   fi
