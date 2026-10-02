@@ -1,0 +1,43 @@
+name: Obsidian Vault Bridge
+version: "0.1.0"
+slug: obsidian_vault_bridge
+description: Keeps an Obsidian Sync vault in a private GitHub repo, committing every change so it can be rolled back.
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+hassio_api: true
+homeassistant_api: true
+options:
+  obsidian_email: ""
+  obsidian_password: ""
+  obsidian_mfa_code: ""
+  vault_name: ""
+  vault_e2e_password: ""
+  device_name: "Mac mini bridge"
+  github_repo: ""
+  github_branch: main
+  commit_interval_minutes: 5
+  excluded_folders: []
+  max_deletions_per_cycle: 25
+  first_push_approved: false
+  notify_service: ""
+  approve_held_changes: false
+schema:
+  obsidian_email: email?
+  obsidian_password: password?
+  obsidian_mfa_code: str?
+  vault_name: str
+  vault_e2e_password: password?
+  device_name: str
+  github_repo: match(^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$)
+  github_branch: str
+  commit_interval_minutes: int(1,1440)
+  excluded_folders:
+    - str
+  max_deletions_per_cycle: int(1,100000)
+  first_push_approved: bool
+  notify_service: str?
+  approve_held_changes: bool

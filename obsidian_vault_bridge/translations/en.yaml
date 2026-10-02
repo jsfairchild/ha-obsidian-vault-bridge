@@ -1,0 +1,40 @@
+configuration:
+  obsidian_email:
+    name: Obsidian account email
+  obsidian_password:
+    name: Obsidian account password
+    description: Used once to log in, then cleared automatically.
+  obsidian_mfa_code:
+    name: Two-factor code
+    description: Only if your Obsidian account uses two-factor login. Enter a fresh code and start the add-on right away.
+  vault_name:
+    name: Remote vault name
+    description: The vault's name as shown in Obsidian Sync.
+  vault_e2e_password:
+    name: Vault encryption password
+    description: Only for end-to-end encrypted vaults. Used once, then cleared automatically.
+  device_name:
+    name: Device name
+    description: How this add-on appears in Obsidian Sync's version history.
+  github_repo:
+    name: GitHub repository
+    description: Your private repo, as owner/name.
+  github_branch:
+    name: Branch
+  commit_interval_minutes:
+    name: Commit every (minutes)
+  excluded_folders:
+    name: Folders to keep off GitHub
+    description: Never downloaded to this device and never committed.
+  max_deletions_per_cycle:
+    name: Deletion safety limit
+    description: If more files than this disappear at once, syncing to GitHub pauses until you check.
+  first_push_approved:
+    name: Approve first upload
+    description: Turn on after reviewing the secret scan in the log.
+  notify_service:
+    name: Phone notification service
+    description: Optional, e.g. mobile_app_joshs_iphone. Safety stops and conflicts are always shown in Home Assistant's notifications too.
+  approve_held_changes:
+    name: Approve paused changes
+    description: Turn on once to let a paused batch through (after checking it was intended). Turns itself off.
