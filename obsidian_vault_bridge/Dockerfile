@@ -1,5 +1,4 @@
-ARG BUILD_FROM
-FROM ${BUILD_FROM}
+FROM docker.io/library/node:22-bookworm-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git openssh-client jq curl ca-certificates \
