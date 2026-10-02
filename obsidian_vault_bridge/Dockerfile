@@ -5,7 +5,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Pinned: obsidian-headless is in beta, so upgrades are deliberate.
-RUN npm install -g obsidian-headless@0.0.14 && npm cache clean --force
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ \
+    && npm install -g obsidian-headless@0.0.14 \
+    && npm cache clean --force \
+    && apt-get purge -y python3 make g++ \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY run.sh bridge.sh secret_scan.js anomaly_check.js /app/
 RUN chmod +x /app/run.sh /app/bridge.sh
