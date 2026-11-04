@@ -27,10 +27,10 @@ options:
   approve_held_changes: false
 schema:
   obsidian_email: email?
-  obsidian_password: password?
+  obsidian_password: password?  # a type, not a value. secret-scan: allow
   obsidian_mfa_code: str?
   vault_name: str
-  vault_e2e_password: password?
+  vault_e2e_password: password?  # a type, not a value. secret-scan: allow
   device_name: str
   github_repo: match(^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$)
   github_branch: str

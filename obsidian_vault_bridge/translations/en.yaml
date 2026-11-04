@@ -34,7 +34,7 @@ configuration:
     description: Turn on after reviewing the secret scan in the log.
   notify_service:
     name: Phone notification service
-    description: Optional, e.g. mobile_app_joshs_iphone. Safety stops and conflicts are always shown in Home Assistant's notifications too.
+    description: Optional, e.g. mobile_app_your_iphone. Safety stops and conflicts are always shown in Home Assistant's notifications too.  # a placeholder. secret-scan: allow
   approve_held_changes:
     name: Approve paused changes
     description: Turn on once to let a paused batch through (after checking it was intended). Turns itself off.
