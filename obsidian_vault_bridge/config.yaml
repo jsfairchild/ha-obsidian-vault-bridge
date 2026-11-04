@@ -1,5 +1,5 @@
 name: Obsidian Vault Bridge
-version: "0.3.0"
+version: "0.3.1"
 slug: obsidian_vault_bridge
 description: Keeps an Obsidian Sync vault in a private GitHub repo, committing every change so it can be rolled back.
 arch:
@@ -16,7 +16,7 @@ options:
   obsidian_mfa_code: ""
   vault_name: ""
   vault_e2e_password: ""
-  device_name: "Mac mini bridge"
+  device_name: "Home Assistant bridge"
   github_repo: ""
   github_branch: main
   commit_interval_minutes: 5
