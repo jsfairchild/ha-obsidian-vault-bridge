@@ -1,0 +1,5 @@
+{
+  "tests": {
+    "command": "node --test tests/*.test.js"
+  }
+}
