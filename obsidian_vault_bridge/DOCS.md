@@ -9,9 +9,9 @@ Phone / PC / Mac  <-- Obsidian Sync -->  this add-on  <-- git -->  private GitHu
 
 ## How it keeps your notes safe
 
-- **Every change is a commit.** Nothing is ever force-pushed or rewritten, so any earlier
-  version of any note can be restored from GitHub's history. Obsidian Sync's own version
-  history still works too.
+- **Every change is a commit.** Your notes' history is never force-pushed or rewritten, so
+  any earlier version of any note can be restored from GitHub's history. Obsidian Sync's own
+  version history still works too.
 - **Conflicts never lose text.** If you and Claude edit the same note between syncs, your
   version stays in place and Claude's is saved next to it as
   `Note (GitHub conflict <date>).md`.
@@ -67,6 +67,27 @@ Phone / PC / Mac  <-- Obsidian Sync -->  this add-on  <-- git -->  private GitHu
 6. **Approve the first upload:** turn on `first_push_approved` and restart the add-on.
 
 After that it runs on its own and commits every few minutes.
+
+## Status file
+
+Once the first upload is done, the add-on writes `Bridge status.md` after every cycle to a
+separate `bridge-status` branch of the same repository, so you (or Claude) can check on it
+from GitHub without opening Home Assistant. It lists:
+
+- **Last cycle:** when it ran, whether it was OK, held or failed, and a "stale after" time,
+  three cycles later. If that time has passed, the add-on looks stopped or can't reach GitHub.
+- **Last pull:** the newest GitHub commit merged into your vault, and when. Once it's there,
+  that change is on its way to your devices through Obsidian Sync.
+- **Held changes:** which safety stop paused syncing, and the notes involved. A held secret is
+  shown only by its note, line and kind.
+- **Alerts:** the last 10 notifications, with any preview of a secret removed.
+- **Settings:** the version, the cycle interval, how many folders are excluded (not their
+  names), the deletion limit and whether phone alerts are on. No password, code or login is
+  ever written.
+
+The branch holds only that one file and is replaced on every cycle, so it adds nothing to your
+notes' history. The add-on syncs only the `github_branch` branch, so the file never appears
+in Obsidian.
 
 ## Rolling back
 
