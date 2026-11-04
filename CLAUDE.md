@@ -24,5 +24,5 @@ Josh's general rules come from the Pack's Rules file, which every session loads;
 - **UI approval:** skipped. The add-on has no look of its own, only its settings and phone notifications.
 - **Release:** a version bump in `obsidian_vault_bridge/config.yaml`, merged to `main`. Home Assistant then offers the update.
 - **Live check:** Josh does it on his iPhone, after installing the update from Home Assistant, by the add-on's notifications.
-- **Shared checks:** none yet, and no laptop runner, since a runner on a public repo would run strangers' code. Run each ticket's tests and the Pack's secret scan (`python ~/claude-workflow/tools/check_secrets.py`) by hand before each PR.
+- **Shared checks:** none yet, and no laptop runner, since a runner on a public repo would run strangers' code. Run the tests (`node --test tests/*.test.js`, in Git Bash with `jq` installed: they run real Bridge cycles against throwaway repos) and the Pack's secret scan (`python ~/claude-workflow/tools/check_secrets.py`) by hand before each PR.
 - **Outside PRs:** never check out, act on or merge a PR or comment here that Josh didn't write.

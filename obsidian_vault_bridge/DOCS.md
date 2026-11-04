@@ -24,8 +24,20 @@ Phone / PC / Mac  <-- Obsidian Sync -->  this add-on  <-- git -->  private GitHu
   to GitHub. If a paused batch was intended (say you reorganized folders), turn on
   `approve_held_changes` and restart the add-on; it lets that batch through once.
 - **Secret scan.** Before the first upload, the whole vault is scanned for passwords, API keys,
-  card and account numbers. The first upload waits for your approval. After that, new notes
-  that look like they contain secrets are flagged in the log.
+  card and account numbers. The first upload waits for your approval. After that, every
+  commit is checked first, line by line, for what it adds:
+  - A **credential** (a password or secret line, a private key, an API key or token, a Google
+    OAuth client secret, a backup key) pauses syncing: nothing is committed or sent to
+    GitHub, and changes from GitHub wait too. The notification names the note, the line and
+    the kind, with only the first three characters shown. Move the secret out of the note
+    (into a password manager) and the next cycle syncs on its own. If it was a false alarm,
+    turn on `approve_held_changes` and restart the add-on; it lets that one cycle through.
+  - A **personal number** (Social Security, account, routing or card number) sends a
+    notification, and syncing goes on.
+
+  Lines already on GitHub aren't flagged again when you edit their note. When you update
+  from a version before 0.2.0, the first cycle scans the whole vault once with the newest
+  checks, lists what it finds in the log and notifies you of the count. It pauses nothing.
 - **Narrow access.** GitHub access is a deploy key that works on this one repository only and
   cannot change its settings or visibility. Your Obsidian password and vault encryption password
   are used once and then cleared from the options; only a login token is kept, inside the

@@ -30,12 +30,16 @@ notify() {
 
 cd "$VAULT" || exit 1
 
-# Runs the anomaly check. Warnings notify; anything serious pauses syncing unless you have
-# approved held changes once (approve_held_changes option).
+ANOMALY=${ANOMALY:-/app/anomaly_check.js}
+SCAN=${SCAN:-/app/secret_scan.js}
+
+# Runs a safety check (the given command prints {"hold": [...], "warn": [...]}). Warnings
+# notify; anything serious pauses syncing unless you have approved held changes once
+# (approve_held_changes option).
 gate() {
   local where="$1"; shift
   local out holds warns
-  out=$(node "${ANOMALY:-/app/anomaly_check.js}" "$@") || { log "Anomaly check failed to run; pausing to be safe."; return 1; }
+  out=$("$@") || { log "Safety check failed to run; pausing to be safe."; return 1; }
   warns=$(echo "$out" | jq -r '.warn | join(" | ")')
   holds=$(echo "$out" | jq -r '.hold | join(" | ")')
   [ -n "$warns" ] && notify "Heads up ($where): $warns"
@@ -66,12 +70,12 @@ commit_local() {
     log "Nothing was committed or pushed. If this was intended, raise max_deletions_per_cycle."
     return 1
   fi
-  gate "your vault" staged || { git reset -q; return 1; }
+  gate "your vault" node "$ANOMALY" staged || { git reset -q; return 1; }
+  # Credentials hold here, before anything is committed; personal numbers only notify.
+  gate "your vault" node "$SCAN" "$VAULT" --staged || { git reset -q; return 1; }
   local n
   n=$(git diff --cached --name-only | wc -l)
   git commit -q -m "Vault sync: $n file(s) changed" && log "Committed $n local change(s)."
-  # Warn (without blocking) if anything that looks like a credential was just added.
-  git diff --name-only --diff-filter=AM HEAD~1 HEAD 2>/dev/null | node "${SCAN:-/app/secret_scan.js}" "$VAULT" --stdin --quiet-if-clean || true
   return 0
 }
 
@@ -96,7 +100,7 @@ merge_remote() {
     return 1
   fi
   if [ ${#base_args[@]} -eq 0 ]; then
-    gate "changes from GitHub" range "$(git merge-base HEAD "$remote")" "$remote" || return 1
+    gate "changes from GitHub" node "$ANOMALY" range "$(git merge-base HEAD "$remote")" "$remote" || return 1
   fi
   if git merge -q --no-edit "${base_args[@]}" -m "Merge changes from GitHub" "$remote" 2>/dev/null; then
     log "Merged changes from GitHub."
@@ -132,7 +136,7 @@ push_remote() {
   local marker="$STATE_DIR/first_push_done"
   if [ ! -f "$marker" ]; then
     # Scan only what git will upload (excluded files such as plugin code never leave the vault).
-    git ls-files | node "${SCAN:-/app/secret_scan.js}" "$VAULT" --stdin | tee "$STATE_DIR/secret_scan.txt"
+    git ls-files | node "$SCAN" "$VAULT" --stdin | tee "$STATE_DIR/secret_scan.txt"
     if [ "$FIRST_PUSH_APPROVED" != "true" ]; then
       notify "First upload is waiting for you: review the secret scan in the add-on log, then turn on first_push_approved."
       log "FIRST PUSH ON HOLD: review the scan above, remove anything sensitive (or add the folder to"
@@ -156,13 +160,29 @@ push_remote() {
   fi
   if git push -q origin "HEAD:refs/heads/$BRANCH"; then
     rm -f "$STATE_DIR/last_notice"
-    [ -f "$marker" ] || { touch "$marker"; log "First push complete."; }
+    [ -f "$marker" ] || { touch "$marker" "$STATE_DIR/full_scan_done"; log "First push complete."; }
     return 0
   fi
   notify "Could not upload to GitHub; retrying every cycle. Check the add-on log if this persists."
   return 1
 }
 
+# Once, on an install that was already syncing: scans everything already uploaded, in case an
+# older note holds a kind of secret the scan learned later. It reports and holds nothing
+# (those notes are on GitHub already; changing the secret is the fix). A new install skips
+# it, because the first upload's own scan covers the whole vault.
+full_scan_once() {
+  local marker="$STATE_DIR/full_scan_done" out n
+  [ -f "$marker" ] && return 0
+  [ -f "$STATE_DIR/first_push_done" ] || return 0
+  out=$(git ls-files | node "$SCAN" "$VAULT" --stdin) || return 0
+  echo "$out"
+  n=$(echo "$out" | grep -c '^\[secret-scan\]   ')
+  notify "Secret scan of the whole vault: $n possible secret(s); see the add-on log"
+  touch "$marker"
+}
+
+full_scan_once
 commit_local || exit 1
 merge_remote || exit 1
 if [ -n "$(git log "origin/$BRANCH..HEAD" --oneline 2>/dev/null || git log --oneline -1)" ]; then
