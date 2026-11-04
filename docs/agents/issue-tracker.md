@@ -16,7 +16,7 @@ PRs are opened in this repo (`gh pr create`, no `-R`); CLAUDE.md § The Pack say
 
 ## Pull requests as a triage surface
 
-**PRs as a request surface: no.** Outside PRs are never triaged or acted on (see above).
+**PRs as a request surface: no.** Outside PRs are never triaged or acted on (CLAUDE.md § The Pack).
 
 ## When a skill says "publish to the issue tracker"
 
