@@ -1,0 +1,23 @@
+# The Bridge's tests, on GitHub's machines, for every PR (jsfairchild/obsidian-helper#137).
+# This repo is public, so a stranger's PR runs this file too: it runs only after Josh approves it,
+# with a read-only token and no secrets. tests/workflows.test.js holds every workflow here to these rules.
+name: Tests
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The same test command sessions run, from the repo's Pack settings file.
+      - name: The repo's tests pass
+        shell: bash
+        run: |
+          command=$(jq -er '.tests.command' .github/pack-checks.json)
+          echo "Running: $command"
+          bash -c "$command"
