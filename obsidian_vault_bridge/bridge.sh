@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
 # One git cycle between the local vault (kept current by Obsidian Sync) and GitHub.
 # Commits local changes, merges in changes made on GitHub, then pushes.
-# Never rewrites history and never force-pushes, so every state stays recoverable.
+# Never rewrites the vault's history and never force-pushes it, so every state stays
+# recoverable. The one exception is the bridge-status branch, which holds no notes, only the
+# Bridge status (status.js), replaced after every cycle.
 #
-# Env: VAULT, BRANCH, STATE_DIR, MAX_DELETIONS, FIRST_PUSH_APPROVED (true/false)
+# Env: VAULT, BRANCH, STATE_DIR, MAX_DELETIONS, FIRST_PUSH_APPROVED (true/false), OPTS
 set -uo pipefail
 
 log() { echo "[bridge] $*"; }
+now() { date +%Y-%m-%dT%H:%M:%S%:z; }
 
 # Tells you in Home Assistant (and on your phone, if notify_service is set) when syncing
-# needs attention. The same message is only sent once until something changes.
+# needs attention. The same message is only sent once until something changes. The last 10
+# sent are kept for the Bridge status.
 notify() {
   local msg="$1"
   log "$msg"
-  [ -n "${SUPERVISOR_TOKEN:-}" ] || return 0
-  local last="$STATE_DIR/last_notice"
+  local last="$STATE_DIR/last_notice" alerts="$STATE_DIR/alerts.jsonl"
   [ -f "$last" ] && [ "$(cat "$last")" = "$msg" ] && return 0
   echo "$msg" > "$last"
+  jq -cn --arg t "$(now)" --arg m "$msg" '{time: $t, message: $m}' >> "$alerts"
+  tail -n 10 "$alerts" > "$alerts.tmp" && mv "$alerts.tmp" "$alerts"
+  [ -n "${SUPERVISOR_TOKEN:-}" ] || return 0
   local body
   body=$(jq -n --arg m "$msg" '{title: "Obsidian Vault Bridge", message: $m, notification_id: "obsidian_vault_bridge"}')
   curl -fsS -X POST -H "Authorization: Bearer $SUPERVISOR_TOKEN" -H "Content-Type: application/json" \
@@ -32,12 +38,35 @@ cd "$VAULT" || exit 1
 
 ANOMALY=${ANOMALY:-/app/anomaly_check.js}
 SCAN=${SCAN:-/app/secret_scan.js}
+STATUS=${STATUS:-/app/status.js}
 
-# Runs a safety check (the given command prints {"hold": [...], "warn": [...]}). Warnings
-# notify; anything serious pauses syncing unless you have approved held changes once
-# (approve_held_changes option).
+# After every cycle, once the first upload is done: rewrites the Bridge status as the one
+# commit of the bridge-status branch. It's built from git objects alone, so the vault's
+# files and its own branch are never touched. A failure here is only logged.
+write_status() {
+  local code="$1" result=failed blob tree commit
+  [ -f "$STATE_DIR/first_push_done" ] || return 0
+  if [ "$code" -eq 0 ]; then result=OK; elif [ -s "$HELD" ]; then result=held; fi
+  if blob=$(node "$STATUS" "$result" | git hash-object -w --stdin) \
+    && tree=$(printf '100644 blob %s\tBridge status.md\n' "$blob" | git mktree) \
+    && commit=$(git commit-tree "$tree" -m "Bridge status") \
+    && git push -q -f origin "$commit:refs/heads/bridge-status" 2>/dev/null; then
+    return 0
+  fi
+  log "Could not write the Bridge status to GitHub; syncing goes on."
+}
+trap 'write_status $?' EXIT
+
+# What this cycle held, one "<safety stop>: <what>" per line, for the Bridge status.
+HELD="$STATE_DIR/cycle_held"
+: > "$HELD"
+held() { echo "$1: $2" >> "$HELD"; }
+
+# Runs a safety check (the given command prints {"hold": [...], "warn": [...]}, and
+# optionally "held": the holds without previews). Warnings notify; anything serious pauses
+# syncing unless you have approved held changes once (approve_held_changes option).
 gate() {
-  local where="$1"; shift
+  local stop="$1" where="$2"; shift 2
   local out holds warns
   out=$("$@") || { log "Safety check failed to run; pausing to be safe."; return 1; }
   warns=$(echo "$out" | jq -r '.warn | join(" | ")')
@@ -49,6 +78,8 @@ gate() {
     return 0
   fi
   notify "Paused ($where): $holds. Check your vault; if this was intended, turn on approve_held_changes and restart the add-on."
+  local h
+  while IFS= read -r h; do held "$stop" "$h"; done < <(echo "$out" | jq -r '(.held // .hold)[]')
   return 1
 }
 
@@ -67,16 +98,22 @@ commit_local() {
   if [ "$dels" -gt "$MAX_DELETIONS" ] && ! approved_once; then
     git reset -q
     notify "Safety stop: $dels notes disappeared from the vault at once (limit $MAX_DELETIONS). Nothing was sent to GitHub. Check your vault, then restore the notes or raise the limit."
+    held "Deletion limit" "$dels notes deleted in your vault (limit $MAX_DELETIONS)"
     log "Nothing was committed or pushed. If this was intended, raise max_deletions_per_cycle."
     return 1
   fi
-  gate "your vault" node "$ANOMALY" staged || { git reset -q; return 1; }
+  gate "Anomaly check" "your vault" node "$ANOMALY" staged || { git reset -q; return 1; }
   # Credentials hold here, before anything is committed; personal numbers only notify.
-  gate "your vault" node "$SCAN" "$VAULT" --staged || { git reset -q; return 1; }
+  gate "Secret scan" "your vault" node "$SCAN" "$VAULT" --staged || { git reset -q; return 1; }
   local n
   n=$(git diff --cached --name-only | wc -l)
   git commit -q -m "Vault sync: $n file(s) changed" && log "Committed $n local change(s)."
   return 0
+}
+
+# Remembers the GitHub commit just merged into the vault, for the Bridge status.
+pulled() {
+  jq -cn --arg c "$(git rev-parse "$1")" --arg t "$(now)" '{commit: $c, time: $t}' > "$STATE_DIR/last_pull.json"
 }
 
 merge_remote() {
@@ -97,13 +134,15 @@ merge_remote() {
   dels=$(git diff --diff-filter=D --name-only $range | wc -l)
   if [ ${#base_args[@]} -eq 0 ] && [ "$dels" -gt "$MAX_DELETIONS" ] && ! approved_once; then
     notify "Safety stop: changes on GitHub would delete $dels notes (limit $MAX_DELETIONS). Nothing was changed in your vault."
+    held "Deletion limit" "$dels notes deleted on GitHub (limit $MAX_DELETIONS)"
     return 1
   fi
   if [ ${#base_args[@]} -eq 0 ]; then
-    gate "changes from GitHub" node "$ANOMALY" range "$(git merge-base HEAD "$remote")" "$remote" || return 1
+    gate "Anomaly check" "changes from GitHub" node "$ANOMALY" range "$(git merge-base HEAD "$remote")" "$remote" || return 1
   fi
   if git merge -q --no-edit "${base_args[@]}" -m "Merge changes from GitHub" "$remote" 2>/dev/null; then
     log "Merged changes from GitHub."
+    pulled "$remote"
     return 0
   fi
   if [ -f .git/MERGE_HEAD ]; then
@@ -126,6 +165,7 @@ merge_remote() {
       notify "Edit conflict in $f: your version was kept and the other one saved as '${copy:-<deleted on GitHub>}'."
     done < <(git diff --name-only --diff-filter=U)
     git commit -q --no-edit -m "Merge changes from GitHub (conflicts kept as copies)"
+    pulled "$remote"
     return 0
   fi
   log "Merge postponed (files changing during sync); will retry next cycle."

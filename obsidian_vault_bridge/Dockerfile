@@ -13,7 +13,7 @@ RUN apt-get update \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-COPY run.sh bridge.sh secret_scan.js anomaly_check.js /app/
+COPY run.sh bridge.sh secret_scan.js anomaly_check.js status.js config.yaml /app/
 RUN chmod +x /app/run.sh /app/bridge.sh
 
 CMD ["/app/run.sh"]
