@@ -25,3 +25,4 @@ The same in every Adopted repo (claude-workflow#51).
 
 - **A bug confirmed from a log counts as verified.** An outage or a failed scheduled run can't be reproduced on demand; the log lines that show it (a run log, a CI run, a service's log), quoted on the ticket, verify it (claude-workflow#302).
 - **A ticket asking for a check, hook or tool** also gets the Pack's tracker searched, beside this repo's: `gh issue list -R jsfairchild/claude-workflow --state all --search "<words>"`. ynab-cfo#273 asked for a check the Pack had already shipped in claude-workflow#244.
+- **Every ticket gets its grilling, even one with nothing to build** (switches in a device's settings, Notes only Josh can edit): triage sets `needs-grilling`. On 2026-11-03 triage recommended `ready-for-human` without grilling for obsidian-helper#12 and #131, Josh said yes, then: "I did not intend for you to ever skip grilling".
