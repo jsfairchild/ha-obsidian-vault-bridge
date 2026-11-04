@@ -7,7 +7,8 @@
 //        secret_scan.js <vault> --staged
 //   Scans only the lines that staged changes add (compared with HEAD), so a secret that is
 //   already on GitHub doesn't stop every later edit of its note. Prints JSON
-//   {"hold": [...], "warn": [...]}: credentials hold, personal numbers warn.
+//   {"hold": [...], "warn": [...], "held": [...]}: credentials hold, personal numbers warn,
+//   and "held" lists the holds with no preview.
 
 const fs = require("fs");
 const path = require("path");
@@ -120,7 +121,8 @@ function scanStaged() {
   let hasHead = true;
   try { git("rev-parse", "--verify", "-q", "HEAD"); } catch { hasHead = false; }
   const parts = git("diff", "--cached", "--name-status", "-M", "-z", "--diff-filter=ACMR").split("\0").filter((x) => x !== "");
-  const hold = [], warn = [];
+  // held: the holds again by Note, line and kind only, for the Bridge status on GitHub.
+  const hold = [], warn = [], held = [];
   for (let i = 0; i < parts.length; ) {
     const st = parts[i++];
     const from = parts[i++];
@@ -132,11 +134,13 @@ function scanStaged() {
     const committedLines = new Set(before === null ? [] : before.split(/\r?\n/));
     for (const f of scanText(rel, after, committedLines)) {
       const where = `${f.rel}:${f.line} (${f.label}, ${f.preview})`;
-      if (f.kind === CREDENTIAL) hold.push(`possible secret in ${where}`);
-      else warn.push(`possible personal number in ${where}`);
+      if (f.kind === CREDENTIAL) {
+        hold.push(`possible secret in ${where}`);
+        held.push(`${f.rel}, line ${f.line}, ${f.label}`);
+      } else warn.push(`possible personal number in ${where}`);
     }
   }
-  console.log(JSON.stringify({ hold, warn }));
+  console.log(JSON.stringify({ hold, warn, held }));
 }
 
 if (staged) {
