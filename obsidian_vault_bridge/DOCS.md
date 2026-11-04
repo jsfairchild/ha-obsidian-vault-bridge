@@ -35,7 +35,7 @@ Phone / PC / Mac  <-- Obsidian Sync -->  this add-on  <-- git -->  private GitHu
   - A **personal number** (Social Security, account, routing or card number) sends a
     notification, and syncing goes on.
 
-  Lines already on GitHub aren't flagged again when you edit their note. When you update
+  Lines the add-on has already committed aren't flagged again when you edit their note. When you update
   from a version before 0.2.0, the first cycle scans the whole vault once with the newest
   checks, lists what it finds in the log and notifies you of the count. It pauses nothing.
 - **Narrow access.** GitHub access is a deploy key that works on this one repository only and

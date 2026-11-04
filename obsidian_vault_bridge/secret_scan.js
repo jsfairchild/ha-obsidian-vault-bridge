@@ -2,9 +2,8 @@
 // Looks for things that resemble credentials or account numbers in vault files.
 // Prints file:line and a masked preview. It never edits a file.
 //
-// Usage: secret_scan.js <vault> [--stdin] [--quiet-if-clean]
+// Usage: secret_scan.js <vault> [--stdin]
 //   --stdin            read relative file paths to scan from stdin (default: whole vault)
-//   --quiet-if-clean   print nothing when there are no findings
 //        secret_scan.js <vault> --staged
 //   Scans only the lines that staged changes add (compared with HEAD), so a secret that is
 //   already on GitHub doesn't stop every later edit of its note. Prints JSON
@@ -16,7 +15,6 @@ const { execFileSync } = require("child_process");
 
 const [vault, ...flags] = process.argv.slice(2);
 const fromStdin = flags.includes("--stdin");
-const quietIfClean = flags.includes("--quiet-if-clean");
 const staged = flags.includes("--staged");
 
 const TEXT_EXT = new Set([".md", ".txt", ".json", ".canvas", ".csv", ".yaml", ".yml", ".js", ".css", ".html", ".base"]);
@@ -107,7 +105,7 @@ function main(files) {
   const findings = [];
   for (const f of files) scanFile(f, findings);
   if (findings.length === 0) {
-    if (!quietIfClean) console.log(`[secret-scan] No likely secrets found in ${files.length} file(s).`);
+    console.log(`[secret-scan] No likely secrets found in ${files.length} file(s).`);
     return;
   }
   console.log(`[secret-scan] ${findings.length} possible secret(s) found. Review these lines:`);
@@ -131,8 +129,8 @@ function scanStaged() {
     const after = show(`:${rel}`);
     if (after === null || Buffer.byteLength(after) > MAX_BYTES) continue;
     const before = hasHead && st[0] !== "A" ? show(`HEAD:${from}`) : null;
-    const old = new Set(before === null ? [] : before.split(/\r?\n/));
-    for (const f of scanText(rel, after, old)) {
+    const committedLines = new Set(before === null ? [] : before.split(/\r?\n/));
+    for (const f of scanText(rel, after, committedLines)) {
       const where = `${f.rel}:${f.line} (${f.label}, ${f.preview})`;
       if (f.kind === CREDENTIAL) hold.push(`possible secret in ${where}`);
       else warn.push(`possible personal number in ${where}`);

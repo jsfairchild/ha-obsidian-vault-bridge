@@ -1,7 +1,7 @@
 // Runs real Bridge cycles (bridge.sh) against a throwaway vault, a fake GitHub (a local
 // bare repo) and a state folder, then checks what reached GitHub and what was notified.
 // With no Home Assistant token, notify() only logs, so the "[bridge]" lines are the
-// notifications. Run with: node --test tests/
+// notifications. Run with: node --test tests/*.test.js
 //
 // Every secret here is made up and built from parts, so this file holds none.
 
