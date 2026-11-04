@@ -68,6 +68,16 @@ test("${{ … }} on a one-line run: is a problem", () => {
   assert.match(workflowProblems(bad).join("\n"), /github\.head_ref/);
 });
 
+test("${{ … }} inside an action's script: is a problem", () => {
+  const bad = GOOD.replace("persist-credentials: false", 'script: console.log("${{ github.head_ref }}")');
+  assert.match(workflowProblems(bad).join("\n"), /github\.head_ref/);
+});
+
+test("a step written in flow style is a problem, since the rules read block style only", () => {
+  const bad = GOOD.replace("      - env:", "      - { uses: actions/checkout@v4 }\n      - env:");
+  assert.match(workflowProblems(bad).join("\n"), /flow style/);
+});
+
 test("a workflow whose token can write is a problem", () => {
   const bad = GOOD.replace("  contents: read", "  contents: write");
   assert.match(workflowProblems(bad).join("\n"), /contents: read/);
