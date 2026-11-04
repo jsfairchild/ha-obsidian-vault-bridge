@@ -32,7 +32,7 @@ Phone / PC / Mac  <-- Obsidian Sync -->  this add-on  <-- git -->  private GitHu
   add-on's private storage.
 - **You hear about problems.** Safety stops, edit conflicts and failed uploads show up in Home
   Assistant's notifications, and on your phone if you set `notify_service` (for example
-  `mobile_app_your_iphone`).
+  `mobile_app_your_iphone`). <!-- a placeholder. secret-scan: allow -->
 - **Backups.** The vault and its full git history live in the add-on's storage, so Home
   Assistant's normal backups include them. Point those backups at Google Drive or a NAS for an
   off-site copy.
