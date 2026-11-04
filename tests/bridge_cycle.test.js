@@ -78,6 +78,12 @@ function setup({ fullScanDone = true, firstPushDone = true, options = {} } = {})
       const r = spawnSync("git", ["--git-dir", remote, "show", "bridge-status:Bridge status.md"], { encoding: "utf8" });
       return r.status === 0 ? r.stdout : null;
     },
+    // GitHub turns away every push to this branch from now on.
+    rejectPushesTo(branch) {
+      const hook = path.join(remote, "hooks", "pre-receive");
+      fs.writeFileSync(hook, `#!/bin/sh\nwhile read old new ref; do [ "$ref" = "refs/heads/${branch}" ] && exit 1; done\nexit 0\n`);
+      fs.chmodSync(hook, 0o755);
+    },
     // A commit made on GitHub (by Claude), as another clone would push it. Returns its id.
     pushFromGitHub(name, text) {
       const other = path.join(root, "other");
@@ -299,8 +305,9 @@ test("the Bridge status shows the settings, with excluded folders only as a coun
   const b = setup();
   b.cycle();
   const status = b.status();
+  const version = fs.readFileSync(path.join(ADDON, "config.yaml"), "utf8").match(/^version: "([^"]+)"/m)[1];
   assert.strictEqual(section(status, "Settings"), [
-    "- Version: 0.3.0",
+    `- Version: ${version}`,
     "- Cycle interval: 5 minutes",
     "- Excluded folders: 2",
     "- Deletion limit: 25",
@@ -353,6 +360,27 @@ test("the Bridge status stays off main and out of the vault, as one commit", () 
   assert.doesNotMatch(git(b.root, "--git-dir", b.remote, "log", "--format=%s", "main"), /Bridge status/);
   assert.strictEqual(fs.existsSync(path.join(b.vault, "Bridge status.md")), false);
   assert.strictEqual(git(b.vault, "status", "--porcelain"), "");
+});
+
+test("a cycle that can't upload is written to the Bridge status as failed", () => {
+  const b = setup();
+  b.cycle();
+  b.rejectPushesTo("main");
+  b.write("New.md", "a new note\n");
+  const { out } = b.cycle();
+  assert.match(out, /Could not upload to GitHub/);
+  assert.match(section(b.status(), "Last cycle"), /^- Result: failed$/m, out);
+  assert.strictEqual(section(b.status(), "Held changes"), "- None");
+});
+
+test("when the Bridge status can't be written, the cycle still syncs and sends no alert", () => {
+  const b = setup();
+  b.rejectPushesTo("bridge-status");
+  b.write("New.md", "a new note\n");
+  const { out, notices } = b.cycle();
+  assert.strictEqual(b.onGitHub("New.md"), true, out);
+  assert.ok(notices.some((l) => l.includes("Could not write the Bridge status")), out);
+  assert.ok(!fs.existsSync(path.join(b.state, "alerts.jsonl")), "logged only, not sent as an alert");
 });
 
 test("phone alerts show as off when no notify service is set", () => {

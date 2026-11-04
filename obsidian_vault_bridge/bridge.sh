@@ -12,8 +12,8 @@ log() { echo "[bridge] $*"; }
 now() { date +%Y-%m-%dT%H:%M:%S%:z; }
 
 # Tells you in Home Assistant (and on your phone, if notify_service is set) when syncing
-# needs attention. The same message is only sent once until something changes. The last 10
-# sent are kept for the Bridge status.
+# needs attention. The same message is only sent once until something changes. The newest
+# ones sent are kept for the Bridge status.
 notify() {
   local msg="$1"
   log "$msg"
@@ -40,6 +40,11 @@ ANOMALY=${ANOMALY:-/app/anomaly_check.js}
 SCAN=${SCAN:-/app/secret_scan.js}
 STATUS=${STATUS:-/app/status.js}
 
+# What this cycle held, one "<safety stop>: <what>" per line, for the Bridge status.
+HELD="$STATE_DIR/cycle_held"
+: > "$HELD"
+held() { echo "$1: $2" >> "$HELD"; }
+
 # After every cycle, once the first upload is done: rewrites the Bridge status as the one
 # commit of the bridge-status branch. It's built from git objects alone, so the vault's
 # files and its own branch are never touched. A failure here is only logged.
@@ -56,11 +61,6 @@ write_status() {
   log "Could not write the Bridge status to GitHub; syncing goes on."
 }
 trap 'write_status $?' EXIT
-
-# What this cycle held, one "<safety stop>: <what>" per line, for the Bridge status.
-HELD="$STATE_DIR/cycle_held"
-: > "$HELD"
-held() { echo "$1: $2" >> "$HELD"; }
 
 # Runs a safety check (the given command prints {"hold": [...], "warn": [...]}, and
 # optionally "held": the holds without previews). Warnings notify; anything serious pauses
