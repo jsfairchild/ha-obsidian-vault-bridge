@@ -1,8 +1,6 @@
 # ha-obsidian-vault-bridge
 
-The Home Assistant add-on that syncs Josh's Obsidian Vault to its private GitHub repo. This repo is public. Its tickets, its glossary and the Vault's other docs live in the private obsidian-helper repo.
-
-Its public text (commits, PRs, tests, `DOCS.md`) stays generic. It never names a Note, a leaked key or a device of Josh's. Tests use made-up values only (obsidian-helper#26).
+The Home Assistant add-on that syncs Josh's Obsidian Vault to its private GitHub repo. This repo is public, so its public text (commits, PRs, tests, `DOCS.md`) stays generic. It never names a Note, a leaked key or a device of Josh's. Tests use made-up values only (obsidian-helper#26).
 
 ## Agent skills
 
