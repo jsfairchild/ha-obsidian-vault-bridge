@@ -1,6 +1,6 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker, which is obsidian-helper's (see `issue-tracker.md`): the labels live there, not in this repo.
+The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker, which is obsidian-helper's (see `docs/agents/issue-tracker.md`): the labels live there, not in this repo.
 
 The rows below Matt's five are the Pack's Stage labels, which mean the same in every Adopted repo. This repo skips UI approval, so it leaves out `needs-prototype` and `needs-ui-ok`.
 

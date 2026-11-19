@@ -1,6 +1,6 @@
 # ha-obsidian-vault-bridge
 
-The Home Assistant add-on that syncs Josh's Obsidian Vault to its private GitHub repo. This repo is public, so its public text (commits, PRs, tests, `DOCS.md`) stays generic. It never names a Note, a leaked key or a device of Josh's. Tests use made-up values only (obsidian-helper#26).
+The Home Assistant add-on that syncs Josh's Obsidian Vault to its private GitHub repo. This repo is public, so its public text (commits, PRs, tests, `obsidian_vault_bridge/DOCS.md`) stays generic. It never names a Note, a leaked key or a device of Josh's. Tests use made-up values only (obsidian-helper#26).
 
 ## Agent skills
 
@@ -23,5 +23,5 @@ Josh's general rules come from the Pack's Rules file, which every session loads;
 - **Tickets:** triage, grilling and Specs happen on obsidian-helper tickets. A PR here says `Part of jsfairchild/obsidian-helper#<n>`, or `Refs` on a ticket's Release PR.
 - **UI approval:** skipped. The add-on has no look of its own, only its settings and phone notifications.
 - **Release and Live check:** before either, read `docs/agents/release.md`.
-- **Shared checks:** the tests run on GitHub's machines for every PR; no laptop runner, since a runner on a public repo would run strangers' code. The tests: the command in `.github/pack-checks.json`, in Git Bash with `jq` installed (real Bridge cycles against throwaway repos). Run it and the Pack's secret scan (`python ~/claude-workflow/tools/check_secrets.py`) before each PR.
+- **Shared checks:** the Push guard runs the secret check and the docs check on every push from this clone, before anything leaves the laptop. It lives in each clone, so a new clone needs the Pack's adopt step again. A finding is fixed by rewording; a line is marked allowed only after Josh says yes in chat, since in a public repo the marker publishes what the check caught. The tests run on GitHub's machines for every PR; no laptop runner, since a runner on a public repo would run strangers' code. The tests: the command in `.github/pack-checks.json`, in Git Bash with `jq` installed (real Bridge cycles against throwaway repos). Run it before each PR.
 - **Outside PRs:** never check out, act on or merge a PR or comment here that Josh didn't write.

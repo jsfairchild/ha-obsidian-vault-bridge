@@ -1,5 +1,8 @@
 {
   "tests": {
     "command": "node --test tests/*.test.js"
+  },
+  "docs": {
+    "outside": ["Refs", "GLOSSARY.md", "docs/adr/"]
   }
 }
